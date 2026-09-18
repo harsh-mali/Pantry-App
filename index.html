@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Pantry Diary</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/favicon.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pantry Diary">
+  <meta name="theme-color" content="#b46d29">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- SECURITY PIN SCREEN -->
+  <div id="pin-screen" style="position:fixed; inset:0; background:#faf7f2; z-index:10000; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+    <div style="background:#fff; padding:24px; border-radius:18px; border:1px solid #ebdcd0; text-align:center; max-width:320px; width:90%;">
+      <h2 style="color:#8c5018; margin-bottom:8px;">Pantry Access</h2>
+      <p style="font-size:0.85rem; color:#8c7b6c; margin-bottom:16px;">Enter Security PIN</p>
+      <input type="password" id="pin-input" maxlength="4" style="text-align:center; font-size:1.5rem; letter-spacing:8px; width:100%; padding:10px; margin-bottom:12px;" readonly>
+      <div id="pin-error" style="color:#b42318; font-size:0.8rem; display:none; margin-bottom:10px;">Incorrect PIN</div>
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
+        <button class="pin-key" onclick="pressPin('1')">1</button>
+        <button class="pin-key" onclick="pressPin('2')">2</button>
+        <button class="pin-key" onclick="pressPin('3')">3</button>
+        <button class="pin-key" onclick="pressPin('4')">4</button>
+        <button class="pin-key" onclick="pressPin('5')">5</button>
+        <button class="pin-key" onclick="pressPin('6')">6</button>
+        <button class="pin-key" onclick="pressPin('7')">7</button>
+        <button class="pin-key" onclick="pressPin('8')">8</button>
+        <button class="pin-key" onclick="pressPin('9')">9</button>
+        <button class="pin-key muted-key" onclick="clearPin()">C</button>
+        <button class="pin-key" onclick="pressPin('0')">0</button>
+        <button class="pin-key primary-key" onclick="validatePin()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="install-banner" style="display:none;"></div>
+
+  <div class="top-header">
+    <div class="brand-title">
+      <h1 id="txt-title">Pantry Diary</h1>
+      <p id="txt-subtitle">School meal &amp; stock log</p>
+    </div>
+    <div class="lang-pill">
+      <button class="lang-btn active" id="btn-en" onclick="setLanguage('en')">English</button>
+      <button class="lang-btn" id="btn-mr" onclick="setLanguage('mr')">मराठी</button>
+    </div>
+  </div>
+
+  <div id="sync-banner" class="sync-banner" style="display:none;"></div>
+
+  <!-- CALENDAR VIEW -->
+  <div id="view-calendar" class="view-section active">
+    <div class="card">
+      <div class="calendar-nav">
+        <button class="nav-arrow" onclick="changeMonth(-1)">❮</button>
+        <div class="month-label" id="month-display"></div>
+        <button class="nav-arrow" onclick="changeMonth(1)">❯</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="day-name">Mon</div><div class="day-name">Tue</div><div class="day-name">Wed</div>
+        <div class="day-name">Thu</div><div class="day-name">Fri</div><div class="day-name">Sat</div>
+        <div class="day-name">Sun</div>
+      </div>
+      <div class="calendar-grid" id="calendar-days"></div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="dot-sample" style="background:var(--green-dot);"></span> <span id="leg-rec">Recipe recorded</span></div>
+        <div class="legend-item"><span class="dot-sample" style="background:var(--yellow-dot);"></span> <span id="leg-off">Off day</span></div>
+        <div class="legend-item"><span class="dot-sample" style="background:var(--gray-dot);"></span> <span id="leg-not">Not recorded</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAILY ENTRIES READ-ONLY VIEW -->
+  <div id="view-entries" class="view-section">
+    <div class="month-picker-box">
+      <label for="entries-month-picker" id="lbl-entries-month">Select Month:</label>
+      <select id="entries-month-picker" onchange="loadDailyEntries()"></select>
+    </div>
+    <div id="entries-error" class="inline-error"></div>
+    <div id="entries-list-container">Loading daily logs...</div>
+  </div>
+
+  <!-- STOCK VIEW -->
+  <div id="view-stock" class="view-section">
+    <div class="month-picker-box" style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <label for="stock-month-picker" id="lbl-select-month">Select Month:</label>
+        <select id="stock-month-picker" onchange="loadStock()"></select>
+      </div>
+      <button class="lang-btn" id="btn-export-excel" onclick="downloadExcel()" style="background:#217346; color:white; display:flex; align-items:center; gap:5px; padding:8px 14px;">
+        <span>📊</span><span id="txt-export-btn">Export Excel</span>
+      </button>
+    </div>
+    <div class="card">
+      <div class="modal-title" id="txt-add-stock-title">Feed New Received Stock</div>
+      <form onsubmit="submitBulkStock(event)">
+        <table class="bulk-stock-table">
+          <thead><tr><th id="th-item">Ingredient (साहित्य)</th><th style="text-align:right;" id="th-add-kg">+ Recv (kg)</th></tr></thead>
+          <tbody id="bulk-stock-tbody"></tbody>
+        </table>
+        <button class="btn-submit" type="submit" id="btn-add-stock">Save All Received Stock</button>
+      </form>
+    </div>
+    <div class="card">
+      <div class="modal-title" id="txt-stock-title">Monthly Stock Summary</div>
+      <div id="stock-error" class="inline-error"></div>
+      <div id="stock-list" style="margin-top:10px;">Loading stock data...</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS VIEW -->
+  <div id="view-settings" class="view-section">
+    <div class="card">
+      <div class="modal-title" id="txt-conn-title">Connection</div>
+      <p class="muted" id="txt-conn-desc">This app talks directly to your own Google Sheet through your Apps Script backend. There is no Claude or third-party account involved.</p>
+      <p class="muted" id="txt-queue-status"></p>
+      <button class="btn-submit" onclick="manualSync()" id="btn-manual-sync">Sync Now</button>
+    </div>
+  </div>
+
+  <!-- DAILY LOG POPUP MODAL -->
+  <div class="modal-overlay" id="entry-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-date-title">Record Meal</div>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-error" class="inline-error"></div>
+      <form onsubmit="submitDailyLog(event)">
+        <input type="hidden" id="selected-date">
+        <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="chk-off" style="width:auto;" onchange="toggleOff(this.checked)">
+          <label for="chk-off" style="margin:0;" id="lbl-is-off">School Off Day</label>
+        </div>
+        <div id="recipe-group">
+          <div class="form-group">
+            <label id="lbl-recipe">Recipe</label>
+            <select id="select-recipe"></select>
+          </div>
+          <div class="form-group">
+            <label id="lbl-students">Students Count</label>
+            <input type="number" id="input-students" value="120">
+          </div>
+        </div>
+        <button class="btn-submit" type="submit" id="btn-save">Save Entry</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- NAVIGATION BAR -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="switchView('view-calendar', this)"><span>📅</span><span id="nav-cal-lbl">Calendar</span></button>
+    <button class="nav-btn" onclick="switchView('view-entries', this)"><span>📋</span><span id="nav-entries-lbl">Entries</span></button>
+    <button class="nav-btn" onclick="switchView('view-stock', this)"><span>📦</span><span id="nav-stock-lbl">Stock</span></button>
+    <button class="nav-btn" onclick="switchView('view-settings', this)"><span>⚙️</span><span id="nav-settings-lbl">Settings</span></button>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="queue.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
