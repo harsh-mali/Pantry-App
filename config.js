@@ -4,5 +4,5 @@
 // the Apps Script project and get a new /exec URL, update it here.
 // ---------------------------------------------------------------
 window.PANTRY_CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyTa8mFtMrcdxOakzvQBJLmCGDiRhT66BPM-JtTzfmv7fqP5ur8LoRspr4LeFbI9ucaTQ/exec"
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwhzGQF3E_V8tdl_GcP2gI9m7pl1N0DLDaXRO4dlyMlHYE3JWYUF_zuaW7j1XaXlFTA/exec"
 };
